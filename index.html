@@ -10,7 +10,7 @@
 <style>
 :root {
   --bg: #EEF2F5; --surface: #FFFFFF; --ink: #16212C; --muted: #5A6875; --line: #D3DBE2;
-  --a: #1F5FBF; --b: #B86E00; --shade: rgba(22, 33, 44, 0.07); --err: #B3261E; --accent: #C23B6B;
+  --a: #1F5FBF; --b: #B86E00; --shade: rgba(22, 33, 44, 0.07); --err: #B3261E; --accent: #C23B6B; --fit: #0B7F74;
   --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
   --cond: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
   color-scheme: light;
@@ -18,13 +18,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #10161D; --surface: #18212B; --ink: #E4EAF0; --muted: #93A1AE; --line: #2A3642;
-    --a: #6FA3F2; --b: #F2B33D; --shade: rgba(228, 234, 240, 0.07); --err: #F2958C; --accent: #F07FA6;
+    --a: #6FA3F2; --b: #F2B33D; --shade: rgba(228, 234, 240, 0.07); --err: #F2958C; --accent: #F07FA6; --fit: #4FD1C5;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #10161D; --surface: #18212B; --ink: #E4EAF0; --muted: #93A1AE; --line: #2A3642;
-  --a: #6FA3F2; --b: #F2B33D; --shade: rgba(228, 234, 240, 0.07); --err: #F2958C; --accent: #F07FA6;
+  --a: #6FA3F2; --b: #F2B33D; --shade: rgba(228, 234, 240, 0.07); --err: #F2958C; --accent: #F07FA6; --fit: #4FD1C5;
   color-scheme: dark;
 }
 :root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
@@ -209,9 +209,12 @@ select { width: auto; }
       <p class="note">Shaded areas are trimmed and not counted. Time is measured from where both files overlap.</p>
     </div>
 
-    <p class="note" id="agreeEmpty" hidden>The agreement charts need at least 32 seconds of matched riding.</p>
+    <p class="note" id="agreeEmpty" hidden>The agreement charts need at least 32 seconds of matched riding above 5 W.</p>
     <div class="panel needs-windows">
-      <div class="panel-head"><h2>Bland–Altman</h2></div>
+      <div class="panel-head">
+        <div class="title-group"><h2>Bland–Altman</h2>
+        <div class="legend"><span style="--c:var(--ink)"><i class="dot"></i>30 s window</span><span style="--c:var(--accent)"><i class="ln"></i>Bias</span><span style="--c:var(--accent)"><i class="ln dash"></i>Limits of agreement</span><span style="--c:var(--fit)"><i class="ln"></i>Best fit</span></div></div>
+      </div>
       <div class="chart-pair">
         <div><h3>Difference in watts</h3>
           <div class="chart tall"><canvas id="baChart" aria-label="Bland-Altman plot of A minus B in watts"></canvas></div>
@@ -220,17 +223,17 @@ select { width: auto; }
           <div class="chart tall"><canvas id="baPctChart" aria-label="Bland-Altman plot of A minus B in percent"></canvas></div>
           <p class="stats" id="baPctStats"></p></div>
       </div>
-      <p class="note">Each dot is a 30-second average, taken every second. Across: the average of A and B. Up: A − B, in watts or as a percentage of that average. The solid line is the bias (the average difference). About 95% of dots should fall between the dashed limits of agreement, bias ± 1.96 standard deviations. If the dotted trend line slopes, the gap between the devices changes with power.</p>
+      <p class="note">Each dot is a 30-second average, taken every second. Across: the average of A and B. Up: A − B, in watts or as a percentage of that average. Windows where either device averages under 5 W, such as coasting or stops, are left out. The pink line is the bias (the average difference), and about 95% of dots should fall between the dashed limits of agreement, bias ± 1.96 standard deviations. The green line of best fit shows whether the gap between the devices changes with power: flat means it stays the same.</p>
     </div>
 
     <div class="panel needs-windows">
       <div class="panel-head">
         <div class="title-group"><h2>30 s mean power</h2>
-        <div class="legend"><span style="--c:var(--ink)"><i class="dot"></i>30 s window</span><span style="--c:var(--muted)"><i class="ln dash"></i>A = B</span><span style="--c:var(--accent)"><i class="ln"></i>Fit</span></div></div>
+        <div class="legend"><span style="--c:var(--ink)"><i class="dot"></i>30 s window</span><span style="--c:var(--muted)"><i class="ln dash"></i>A = B</span><span style="--c:var(--fit)"><i class="ln"></i>Best fit</span></div></div>
       </div>
       <div class="chart square"><canvas id="scatterChart" aria-label="30 second mean power of A against B"></canvas></div>
       <p class="stats" id="fitStats"></p>
-      <p class="note">Dots above the dashed line are windows where A read higher than B.</p>
+      <p class="note">Windows where either device averages under 5 W are left out. Dots above the dashed line are windows where A read higher than B.</p>
     </div>
 
     <div class="panel">
@@ -885,6 +888,7 @@ function drawCurve(range) {
 // ---------------------------------------------------------------- agreement charts (30 s means)
 let baChart = null, baPctChart = null, scatterChart = null;
 const WINDOW_S = 30;
+const MIN_WATTS = 5;   // windows where A or B averages under this are left out (coasting, stops)
 
 // Rolling 30 s means, stepping 1 s at a time. A window is used only if all 30 seconds
 // have power from both files. t = window start, in seconds from where the files overlap.
@@ -921,12 +925,15 @@ const forDisplay = (pts) => { const s = Math.ceil(pts.length / 6000); return s >
 
 function drawAgreement(range) {
   const { A, B, k } = state;
-  const wins = rollingMeans(A, B, k, range.lo, range.hi, WINDOW_S);
+  const wins = rollingMeans(A, B, k, range.lo, range.hi, WINDOW_S)
+    .filter((w) => w.a >= MIN_WATTS && w.b >= MIN_WATTS);
   const enough = wins.length >= 3;
   $('agreeEmpty').hidden = enough;
   document.querySelectorAll('.needs-windows').forEach((el) => { el.hidden = !enough; });
   if (!enough) return;
-  const ink = css('--ink'), acc = css('--accent'), muted = css('--muted');
+  const ink = css('--ink'), acc = css('--accent'), muted = css('--muted'), fitC = css('--fit');
+  const fitLine = (f, x1, x2) => ({ x1, y1: f.slope * x1 + f.intercept, x2, y2: f.slope * x2 + f.intercept, color: fitC, width: 2.2 });
+  const eq = (f, dp, unit) => `${f.slope.toFixed(dp).replace('-', MINUS)} ${'\u00D7'} x ${f.intercept < 0 ? MINUS : '+'} ${Math.abs(f.intercept).toFixed(dp === 3 ? 1 : 2)}${unit}`;
   const limits = (unit, d) => [
     { y: 0, color: muted, width: 1 },
     { y: d.mean, color: acc, width: 2, label: `bias ${signed(d.mean)}${unit}` },
@@ -948,21 +955,24 @@ function drawAgreement(range) {
   baChart.set({
     series: [{ type: 'scatter', color: ink, alpha: 0.25, points: forDisplay(ba) }],
     yZero: false, xGrid: true, hLines: limits(' W', d), hoverMode: 'nearest', tip: tipFor(' W'),
-    segments: [{ x1: mLo, y1: trend.slope * mLo + trend.intercept, x2: mHi, y2: trend.slope * mHi + trend.intercept, color: ink, width: 1.5, dash: [2, 3] }],
+    segments: [fitLine(trend, mLo, mHi)],
     xLabel: 'Average of A and B (W)', yLabel: `A ${MINUS} B (W)`,
   });
-  $('baStats').textContent = `${ba.length} windows. Bias ${signed(d.mean)} W, limits of agreement ${signed(d.mean - 1.96 * d.sd)} to ${signed(d.mean + 1.96 * d.sd)} W. Dotted trend: ${signed(trend.slope * 100)} W per 100 W.`;
+  $('baStats').textContent = `${ba.length} windows. Bias ${signed(d.mean)} W, limits of agreement ${signed(d.mean - 1.96 * d.sd)} to ${signed(d.mean + 1.96 * d.sd)} W. Best fit: y = ${eq(trend, 4, ' W')}, so the gap changes by ${signed(trend.slope * 100)} W per 100 W.`;
 
   // Bland-Altman, percent: y = (A - B) / ((A + B) / 2) * 100
   const bp = ba.filter((p) => p.x > 0).map((p) => ({ ...p, y: p.y / p.x * 100 }));
   const dp = meanSd(bp.map((p) => p.y));
+  const trendP = linreg(bp.map((p) => p.x), bp.map((p) => p.y));
+  const [pLo, pHi] = extent(bp.map((p) => p.x));
   if (!baPctChart) baPctChart = new MiniChart($('baPctChart'));
   baPctChart.set({
     series: [{ type: 'scatter', color: ink, alpha: 0.25, points: forDisplay(bp) }],
     yZero: false, xGrid: true, hLines: limits(' %', dp), hoverMode: 'nearest', tip: tipFor(' %'),
+    segments: [fitLine(trendP, pLo, pHi)],
     xLabel: 'Average of A and B (W)', yLabel: `A ${MINUS} B (% of average)`,
   });
-  $('baPctStats').textContent = `${bp.length} windows. Bias ${signed(dp.mean, 2)} %, limits of agreement ${signed(dp.mean - 1.96 * dp.sd, 2)} to ${signed(dp.mean + 1.96 * dp.sd, 2)} %.`;
+  $('baPctStats').textContent = `${bp.length} windows. Bias ${signed(dp.mean, 2)} %, limits of agreement ${signed(dp.mean - 1.96 * dp.sd, 2)} to ${signed(dp.mean + 1.96 * dp.sd, 2)} %. Best fit: y = ${eq(trendP, 4, ' %')}, so the gap changes by ${signed(trendP.slope * 100, 2)} percentage points per 100 W.`;
 
   // 30 s mean power: x = B, y = A, with the line A = B and a least-squares fit
   const sc = wins.map((w) => ({ x: w.b, y: w.a, a: w.a, b: w.b, t: w.t }));
@@ -976,12 +986,12 @@ function drawAgreement(range) {
     tip: (p) => ({ title: `30 s from ${hms(p.t)}`, rows: [{ color: css('--a'), text: `A ${Math.round(p.a)} W` }, { color: css('--b'), text: `B ${Math.round(p.b)} W` }] }),
     segments: [
       { x1: r.lo, y1: r.lo, x2: r.hi, y2: r.hi, color: muted, width: 1.2, dash: [6, 4] },
-      { x1: r.lo, y1: fit.slope * r.lo + fit.intercept, x2: r.hi, y2: fit.slope * r.hi + fit.intercept, color: acc, width: 2 },
+      fitLine(fit, lo1, hi1),
     ],
     xLabel: 'B, 30 s mean power (W)', yLabel: 'A, 30 s mean power (W)',
   });
   const icpt = `${fit.intercept < 0 ? MINUS : '+'} ${Math.abs(fit.intercept).toFixed(1)} W`;
-  $('fitStats').textContent = `${sc.length} windows. Fit: A = ${fit.slope.toFixed(3)} ${'\u00D7'} B ${icpt}, r = ${fit.r.toFixed(3)}.`;
+  $('fitStats').textContent = `${sc.length} windows. Best fit: A = ${fit.slope.toFixed(3)} ${'\u00D7'} B ${icpt}, r = ${fit.r.toFixed(3)}.`;
 }
 
 // ---------------------------------------------------------------- wiring
