@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Power match</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #EEF2F5; --surface: #FFFFFF; --ink: #16212C; --muted: #5A6875; --line: #D3DBE2;
+  --a: #1F5FBF; --b: #B86E00; --shade: rgba(22, 33, 44, 0.07); --err: #B3261E; --accent: #C23B6B;
+  --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --cond: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10161D; --surface: #18212B; --ink: #E4EAF0; --muted: #93A1AE; --line: #2A3642;
+    --a: #6FA3F2; --b: #F2B33D; --shade: rgba(228, 234, 240, 0.07); --err: #F2958C; --accent: #F07FA6;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10161D; --surface: #18212B; --ink: #E4EAF0; --muted: #93A1AE; --line: #2A3642;
+  --a: #6FA3F2; --b: #F2B33D; --shade: rgba(228, 234, 240, 0.07); --err: #F2958C; --accent: #F07FA6;
+  color-scheme: dark;
+}
+:root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 16px/1.5 var(--body); -webkit-font-smoothing: antialiased;
+}
+main { max-width: 1080px; margin: 0 auto; padding: 32px 20px 64px; }
+h1 { font: 600 2.4rem/1 var(--cond); margin: 0; letter-spacing: -0.01em; }
+h2 { font: 600 1.35rem/1.2 var(--cond); margin: 0; }
+p { margin: 0; }
+.lede { color: var(--muted); margin-top: 6px; max-width: 60ch; }
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+button, .btn {
+  font: 500 0.95rem/1 var(--body); color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 6px; padding: 9px 14px; cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+button:disabled { opacity: 0.45; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible, .slot:focus-within {
+  outline: 2px solid var(--a); outline-offset: 2px;
+}
+.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* file slots: the coloured edge is the file's identity everywhere on the page */
+.slots { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 28px; }
+.slot {
+  position: relative; display: block; background: var(--surface); border: 1px solid var(--line);
+  border-left: 6px solid var(--c); border-radius: 8px; padding: 18px 20px; cursor: pointer; min-height: 116px;
+}
+.slot[data-f="a"] { --c: var(--a); } .slot[data-f="b"] { --c: var(--b); }
+.slot.drag { background: var(--shade); }
+.slot input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.slot .role { font: 600 1.15rem/1.2 var(--cond); color: var(--c); }
+.slot .name { font-weight: 600; margin-top: 8px; word-break: break-all; }
+.slot .meta, .slot .hint { color: var(--muted); font-size: 0.93rem; margin-top: 2px; }
+.slot .warn { color: var(--err); font-size: 0.9rem; margin-top: 4px; }
+
+#results { margin-top: 40px; }
+.verdict { font: 600 clamp(2.2rem, 6vw, 3.6rem)/1.02 var(--cond); letter-spacing: -0.015em; max-width: 24ch; text-wrap: balance; }
+.verdict-sub { color: var(--muted); font-size: 1.1rem; margin-top: 8px; }
+
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 28px; border-top: 2px solid var(--ink); }
+.metric { padding: 14px 16px 16px 0; border-bottom: 1px solid var(--line); }
+.metric dt { color: var(--muted); font-size: 0.93rem; display: flex; align-items: center; gap: 7px; }
+.metric dd { margin: 4px 0 0; font: 600 2.1rem/1 var(--cond); font-variant-numeric: tabular-nums; }
+.metric dd small { font: 500 1rem var(--body); color: var(--muted); margin-left: 3px; }
+.swatch { width: 10px; height: 10px; border-radius: 2px; background: var(--c); flex: none; }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 28px; margin-top: 14px; color: var(--muted); font-size: 0.95rem; }
+.facts b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px; margin-top: 24px; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.title-group { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+.legend { display: flex; gap: 18px; color: var(--muted); font-size: 0.93rem; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.chart { position: relative; height: 320px; }
+.chart canvas { display: block; touch-action: pan-y; }
+.chart.tall { height: 360px; }
+.chart.square { height: auto; aspect-ratio: 1 / 1; max-width: 620px; }
+.chart-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+h3 { font: 600 1.1rem/1.2 var(--cond); margin: 0 0 8px; }
+.stats { color: var(--ink); font-size: 0.93rem; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.legend .ln { width: 18px; height: 0; border-top: 2px solid var(--c); display: inline-block; }
+.legend .ln.dash { border-top-style: dashed; }
+.legend .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); opacity: 0.5; display: inline-block; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: flex-end; }
+.field { display: flex; flex-direction: column; gap: 5px; font-size: 0.93rem; color: var(--muted); }
+.field input[type=number], select {
+  font: 500 1rem var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 7px 9px; width: 96px;
+}
+select { width: auto; }
+.shift { display: flex; align-items: center; gap: 6px; }
+.shift button { padding: 8px 10px; min-width: 44px; font-variant-numeric: tabular-nums; }
+.shift output { font: 600 1.6rem/1 var(--cond); color: var(--b); min-width: 76px; text-align: center; font-variant-numeric: tabular-nums; }
+.check { flex-direction: row; align-items: center; gap: 8px; color: var(--ink); padding-bottom: 8px; }
+.check input { width: 18px; height: 18px; accent-color: var(--a); }
+.note { color: var(--muted); font-size: 0.9rem; margin-top: 14px; max-width: 75ch; }
+.error { color: var(--err); font-weight: 500; margin-top: 24px; }
+.method { color: var(--muted); font-size: 0.93rem; margin-top: 32px; max-width: 75ch; }
+.method p + p { margin-top: 8px; }
+[hidden] { display: none !important; }
+
+@media (max-width: 820px) {
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .chart-pair { grid-template-columns: 1fr; }
+  .chart.tall { height: 300px; }
+}
+@media (max-width: 600px) {
+  main { padding-top: 20px; }
+  .slots { grid-template-columns: 1fr; }
+  .chart { height: 260px; }
+  .panel { padding: 16px 12px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div>
+      <h1>Power match</h1>
+      <p class="lede">Compare two power sources from the same ride, like pedals against a smart trainer. Files are read in your browser and never uploaded.</p>
+    </div>
+    <button id="swap" type="button" disabled>Swap A and B</button>
+  </div>
+
+  <div class="slots">
+    <label class="slot" data-f="a">
+      <input type="file" accept=".fit,.gz" data-f="a">
+      <div class="role">A, device being tested</div>
+      <div class="body"><p class="hint">Drop a FIT file here or click to choose one.</p></div>
+    </label>
+    <label class="slot" data-f="b">
+      <input type="file" accept=".fit,.gz" data-f="b">
+      <div class="role">B, reference</div>
+      <div class="body"><p class="hint">Drop a FIT file here or click to choose one.</p></div>
+    </label>
+  </div>
+
+  <p class="error" id="error" hidden></p>
+
+  <section id="results" hidden>
+    <p class="verdict" id="verdict"></p>
+    <p class="verdict-sub" id="verdictSub"></p>
+
+    <dl class="metrics">
+      <div class="metric" style="--c: var(--a)"><dt><span class="swatch"></span>Average power A</dt><dd id="mAvgA"></dd></div>
+      <div class="metric" style="--c: var(--b)"><dt><span class="swatch"></span>Average power B</dt><dd id="mAvgB"></dd></div>
+      <div class="metric"><dt>Mean difference</dt><dd id="mDiffW"></dd></div>
+      <div class="metric"><dt>Mean difference %</dt><dd id="mDiffPct"></dd></div>
+      <div class="metric"><dt>RMSE</dt><dd id="mRmse"></dd></div>
+      <div class="metric"><dt>SD of difference</dt><dd id="mSd"></dd></div>
+      <div class="metric"><dt>Coefficient of variation</dt><dd id="mCv"></dd></div>
+      <div class="metric"><dt>Pearson correlation</dt><dd id="mR"></dd></div>
+    </dl>
+    <div class="facts">
+      <span>Matched <b id="fMatched"></b></span>
+      <span>Average cadence <b id="fCad"></b></span>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Line up the files</h2>
+      </div>
+      <div class="controls">
+        <div class="field">B shift
+          <div class="shift">
+            <button type="button" data-step="-10" aria-label="Shift B 10 seconds earlier">−10</button>
+            <button type="button" data-step="-1" aria-label="Shift B 1 second earlier">−1</button>
+            <output id="shiftOut">0 s</output>
+            <button type="button" data-step="1" aria-label="Shift B 1 second later">+1</button>
+            <button type="button" data-step="10" aria-label="Shift B 10 seconds later">+10</button>
+          </div>
+        </div>
+        <button type="button" id="auto" class="primary">Match automatically</button>
+        <label class="field">Search up to (s)<input type="number" id="window" value="300" min="10" step="10"></label>
+        <label class="field check"><input type="checkbox" id="ignoreClock">Ignore device clocks</label>
+      </div>
+      <div class="controls" style="margin-top:18px">
+        <label class="field">Trim start (s)<input type="number" id="trimStart" value="0" min="0" step="1"></label>
+        <label class="field">Trim end (s)<input type="number" id="trimEnd" value="0" min="0" step="1"></label>
+      </div>
+      <p class="note" id="alignNote"></p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title-group"><h2>Power</h2>
+        <div class="legend"><span style="--c:var(--a)"><i class="swatch"></i>A</span><span style="--c:var(--b)"><i class="swatch"></i>B</span></div></div>
+        <label class="field" style="flex-direction:row;align-items:center;gap:8px">Smoothing
+          <select id="smooth">
+            <option value="1">None</option><option value="3">3 s</option><option value="5">5 s</option>
+            <option value="10" selected>10 s</option><option value="30">30 s</option>
+          </select>
+        </label>
+      </div>
+      <div class="chart"><canvas id="powerChart" aria-label="Power of both files over time"></canvas></div>
+      <p class="note">Shaded areas are trimmed and not counted. Time is measured from where both files overlap.</p>
+    </div>
+
+    <p class="note" id="agreeEmpty" hidden>The agreement charts need at least 32 seconds of matched riding.</p>
+    <div class="panel needs-windows">
+      <div class="panel-head"><h2>Bland–Altman</h2></div>
+      <div class="chart-pair">
+        <div><h3>Difference in watts</h3>
+          <div class="chart tall"><canvas id="baChart" aria-label="Bland-Altman plot of A minus B in watts"></canvas></div>
+          <p class="stats" id="baStats"></p></div>
+        <div><h3>Difference in percent</h3>
+          <div class="chart tall"><canvas id="baPctChart" aria-label="Bland-Altman plot of A minus B in percent"></canvas></div>
+          <p class="stats" id="baPctStats"></p></div>
+      </div>
+      <p class="note">Each dot is a 30-second average, taken every second. Across: the average of A and B. Up: A − B, in watts or as a percentage of that average. The solid line is the bias (the average difference). About 95% of dots should fall between the dashed limits of agreement, bias ± 1.96 standard deviations. If the dotted trend line slopes, the gap between the devices changes with power.</p>
+    </div>
+
+    <div class="panel needs-windows">
+      <div class="panel-head">
+        <div class="title-group"><h2>30 s mean power</h2>
+        <div class="legend"><span style="--c:var(--ink)"><i class="dot"></i>30 s window</span><span style="--c:var(--muted)"><i class="ln dash"></i>A = B</span><span style="--c:var(--accent)"><i class="ln"></i>Fit</span></div></div>
+      </div>
+      <div class="chart square"><canvas id="scatterChart" aria-label="30 second mean power of A against B"></canvas></div>
+      <p class="stats" id="fitStats"></p>
+      <p class="note">Dots above the dashed line are windows where A read higher than B.</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title-group"><h2>Time-power curve</h2>
+        <div class="legend"><span style="--c:var(--a)"><i class="swatch"></i>A</span><span style="--c:var(--b)"><i class="swatch"></i>B</span></div></div>
+      </div>
+      <div class="chart"><canvas id="curveChart" aria-label="Best average power for each duration"></canvas></div>
+      <p class="note">Best average power each file held for each duration, within the matched part of the ride.</p>
+    </div>
+
+    <div class="method">
+      <p>Both files are reduced to one value per second; samples recorded faster than that are averaged. The shift that best lines up the two power traces is found by correlation, searching on 5-second averages and then refining to the second.</p>
+      <p>Only the part where the files overlap is compared, and seconds where either file shows no power are trimmed from the start and end. Differences are A minus B, with B as the reference. Mean difference % is the mean difference divided by B's average power. RMSE is the root mean square of the second-by-second differences, and SD of difference is their standard deviation. Coefficient of variation is that SD divided by the average power of both devices. Pearson correlation measures how closely the two traces move together, from 0 to 1.</p>
+      <p>The numbers at the top use the matched 1-second data. The Bland–Altman and 30 s charts use 30-second averages, which smooth out second-to-second noise, so their limits of agreement are narrower than the 1-second SD would suggest.</p>
+    </div>
+  </section>
+</main>
+<script>
+// ---------- FIT decoding: record timestamp (253), power (7), cadence (4) ----------
+const BASE = { // low 5 bits of base type -> [size, reader, invalid]
+  0: [1, 'u8', 0xFF], 1: [1, 'i8', 0x7F], 2: [1, 'u8', 0xFF], 3: [2, 'i16', 0x7FFF],
+  4: [2, 'u16', 0xFFFF], 5: [4, 'i32', 0x7FFFFFFF], 6: [4, 'u32', 0xFFFFFFFF],
+  8: [4, 'f32', null], 9: [8, 'f64', null], 10: [1, 'u8', 0], 11: [2, 'u16', 0], 12: [4, 'u32', 0],
+};
+function readValue(dv, off, size, bt, little) {
+  const b = BASE[bt & 0x1F];
+  if (!b || b[0] !== size) return null;          // strings, byte arrays, arrays: not needed
+  let v;
+  switch (b[1]) {
+    case 'u8': v = dv.getUint8(off); break;
+    case 'i8': v = dv.getInt8(off); break;
+    case 'u16': v = dv.getUint16(off, little); break;
+    case 'i16': v = dv.getInt16(off, little); break;
+    case 'u32': v = dv.getUint32(off, little); break;
+    case 'i32': v = dv.getInt32(off, little); break;
+    case 'f32': v = dv.getFloat32(off, little); break;
+    case 'f64': v = dv.getFloat64(off, little); break;
+  }
+  if (v === b[2] || Number.isNaN(v)) return null;
+  return v;
+}
+
+function readFitRecords(buf) {
+  const dv = new DataView(buf), u8 = new Uint8Array(buf);
+  const recs = [];
+  let pos = 0, truncated = false;
+  outer:
+  while (pos + 12 <= u8.length) {
+    const hs = u8[pos];
+    const sig = String.fromCharCode(u8[pos + 8], u8[pos + 9], u8[pos + 10], u8[pos + 11]);
+    if (sig !== '.FIT') {
+      if (!recs.length) throw new Error("This isn't a FIT file.");
+      break;
+    }
+    const dataSize = dv.getUint32(pos + 4, true);
+    pos += hs;
+    const end = Math.min(pos + dataSize, u8.length);
+    const defs = {};
+    let lastTs = null;
+    try {
+      while (pos < end) {
+        const h = u8[pos++];
+        let local, ts = null;
+        if (h & 0x80) {
+          local = (h >> 5) & 3;
+          const off = h & 0x1F;
+          if (lastTs !== null) {
+            const low = lastTs % 32;
+            ts = lastTs - low + off + (off < low ? 32 : 0);
+            lastTs = ts;
+          }
+        } else if (h & 0x40) {
+          local = h & 0x0F;
+          const little = u8[pos + 1] === 0;
+          const gnum = dv.getUint16(pos + 2, little);
+          const nf = u8[pos + 4];
+          pos += 5;
+          const fields = {};
+          let size = 0;
+          for (let i = 0; i < nf; i++) {
+            const num = u8[pos], fs = u8[pos + 1], bt = u8[pos + 2];
+            if (pos + 2 >= u8.length) throw new RangeError('truncated');
+            pos += 3;
+            if (num === 253 || (gnum === 20 && (num === 7 || num === 4))) fields[num] = [size, fs, bt];
+            size += fs;
+          }
+          if (h & 0x20) {
+            const nd = u8[pos++];
+            for (let i = 0; i < nd; i++) { size += u8[pos + 1]; pos += 3; }
+          }
+          if (pos > u8.length) throw new RangeError('truncated');
+          defs[local] = { gnum, little, fields, size };
+          continue;
+        } else {
+          local = h & 0x0F;
+        }
+        const d = defs[local];
+        if (!d) throw new RangeError('corrupt');
+        if (pos + d.size > u8.length) throw new RangeError('truncated');
+        const get = (n) => { const f = d.fields[n]; return f ? readValue(dv, pos + f[0], f[1], f[2], d.little) : undefined; };
+        const t = get(253);
+        if (t !== undefined && t !== null) lastTs = t;
+        if (d.gnum === 20) {
+          const hasT = d.fields[253] !== undefined || ts !== null;
+          recs.push({ t: ts !== null ? ts : (hasT ? t : undefined), p: get(7), c: get(4) });
+        }
+        pos += d.size;
+      }
+    } catch (e) {
+      if (!(e instanceof RangeError)) throw e;
+      if (!recs.length) throw new Error('This FIT file is damaged and has no readable data.');
+      truncated = true;
+      break outer;
+    }
+    pos = end + 2;
+  }
+  return { recs, truncated };
+}
+
+// ---------- 1 Hz series ----------
+function buildRide(name, buf) {
+  const { recs, truncated } = readFitRecords(buf);
+  const per = new Map();
+  let lastT = null;
+  for (const r of recs) {
+    const t = r.t === undefined ? lastT : r.t;   // no timestamp field: previous record's second
+    if (t === null || t === undefined) continue;
+    lastT = t;
+    let s = per.get(t);
+    if (!s) { s = [0, 0, 0, 0]; per.set(t, s); }
+    if (typeof r.p === 'number') { s[0] += r.p; s[1]++; }
+    if (typeof r.c === 'number') { s[2] += r.c; s[3]++; }
+  }
+  if (!per.size) throw new Error(`${name} has no ride data.`);
+  let t0 = Infinity, t1 = -Infinity;
+  for (const t of per.keys()) { if (t < t0) t0 = t; if (t > t1) t1 = t; }
+  const n = t1 - t0 + 1;
+  const power = new Array(n).fill(null), cadence = new Array(n).fill(null);
+  for (const [t, s] of per) {
+    if (s[1]) power[t - t0] = s[0] / s[1];
+    if (s[3]) cadence[t - t0] = s[2] / s[3];
+  }
+  return { name, t0, power, cadence, truncated };
+}
+
+// ---------- alignment: A[i] pairs with B[i + k]; shift = kClock - k ----------
+function blockMeans(xs, size) {
+  const out = [];
+  for (let s = 0; s < xs.length; s += size) {
+    let sum = 0, n = 0;
+    for (let i = s; i < Math.min(s + size, xs.length); i++) if (xs[i] !== null) { sum += xs[i]; n++; }
+    out.push(n ? sum / n : null);
+  }
+  return out;
+}
+function correlation(a, b, k, minPairs) {
+  const lo = Math.max(0, -k), hi = Math.min(a.length, b.length - k);
+  let n = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+  for (let i = lo; i < hi; i++) {
+    const x = a[i], y = b[i + k];
+    if (x === null || y === null) continue;
+    n++; sx += x; sy += y; sxx += x * x; syy += y * y; sxy += x * y;
+  }
+  if (n < minPairs) return null;
+  const vx = n * sxx - sx * sx, vy = n * syy - sy * sy;
+  if (vx <= 0 || vy <= 0) return null;
+  return (n * sxy - sx * sy) / Math.sqrt(vx * vy);
+}
+function findOffset(a, b, kCenter, windowS, block = 5) {
+  const shorter = Math.min(a.length, b.length);
+  const a5 = blockMeans(a, block), b5 = blockMeans(b, block);
+  const min5 = Math.max(12, Math.floor(0.2 * shorter / block));
+  let bestK5 = null, bestR = -2;
+  for (let k5 = Math.floor((kCenter - windowS) / block); k5 <= Math.ceil((kCenter + windowS) / block); k5++) {
+    const r = correlation(a5, b5, k5, min5);
+    if (r !== null && r > bestR) { bestK5 = k5; bestR = r; }
+  }
+  if (bestK5 === null) throw new Error("The files don't overlap enough to match. Try ignoring device clocks or widening the search.");
+  let bestK = null; bestR = -2;
+  const min1 = Math.max(60, Math.floor(0.2 * shorter));
+  for (let k = bestK5 * block - 2 * block; k <= bestK5 * block + 2 * block; k++) {
+    const r = correlation(a, b, k, min1);
+    if (r !== null && r > bestR) { bestK = k; bestR = r; }
+  }
+  if (bestK === null) { bestK = bestK5 * block; bestR = correlation(a, b, bestK, 1) || 0; }
+  return { k: bestK, r: bestR };
+}
+function trimmedRange(a, b, k, trimStart = 0, trimEnd = 0) {
+  let lo = Math.max(0, -k), hi = Math.min(a.length, b.length - k) - 1;
+  const riding = (i) => !!a[i] && !!b[i + k];
+  while (lo <= hi && !riding(lo)) lo++;
+  while (hi >= lo && !riding(hi)) hi--;
+  lo += trimStart; hi -= trimEnd;
+  if (hi < lo) throw new Error('Nothing is left to compare after trimming.');
+  return { lo, hi };
+}
+function compare(A, B, k, lo, hi) {
+  let n = 0, sa = 0, sb = 0, saa = 0, sbb = 0, sab = 0, sq = 0, ca = 0, nca = 0, cb = 0, ncb = 0;
+  for (let i = lo; i <= hi; i++) {
+    const x = A.power[i], y = B.power[i + k];
+    if (x === null || y === null) continue;
+    n++; sa += x; sb += y; saa += x * x; sbb += y * y; sab += x * y; sq += (x - y) * (x - y);
+    if (A.cadence[i] !== null) { ca += A.cadence[i]; nca++; }
+    if (B.cadence[i + k] !== null) { cb += B.cadence[i + k]; ncb++; }
+  }
+  if (!n) throw new Error('No seconds where both files have power.');
+  const avgA = sa / n, avgB = sb / n, diff = avgA - avgB;            // A minus B; B is the reference
+  const sdDiff = n > 1 ? Math.sqrt(Math.max(0, (sq - n * diff * diff) / (n - 1))) : 0;
+  const den = Math.sqrt((n * saa - sa * sa) * (n * sbb - sb * sb));
+  return {
+    seconds: n, avgA, avgB, diffW: diff, diffPct: avgB ? diff / avgB * 100 : NaN,
+    rmse: Math.sqrt(sq / n), sdDiff, cv: sdDiff / ((avgA + avgB) / 2) * 100,
+    r: den ? (n * sab - sa * sb) / den : null,
+    cadA: nca ? ca / nca : null, cadB: ncb ? cb / ncb : null,
+  };
+}
+// mean-maximal power for each duration, over values (null counts as 0)
+const CURVE_DURATIONS = [1, 2, 3, 5, 8, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 300, 420, 600,
+  900, 1200, 1800, 2700, 3600, 5400, 7200, 10800, 14400, 21600];
+function powerCurve(values) {
+  const pre = new Float64Array(values.length + 1);
+  for (let i = 0; i < values.length; i++) pre[i + 1] = pre[i] + (values[i] || 0);
+  const out = [];
+  for (const d of CURVE_DURATIONS) {
+    if (d > values.length) break;
+    let best = 0;
+    for (let i = d; i <= values.length; i++) { const v = pre[i] - pre[i - d]; if (v > best) best = v; }
+    out.push({ x: d, y: best / d });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------- page
+const state = { A: null, B: null, k: 0, kClock: 0, r: null };
+const $ = (id) => document.getElementById(id);
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const MINUS = '\u2212';
+const signed = (v, d = 1) => (v > 0 ? '+' : v < 0 ? MINUS : '') + Math.abs(v).toFixed(d);
+function hms(s) {
+  s = Math.round(s);
+  const neg = s < 0; s = Math.abs(s);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  const t = h ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`;
+  return (neg ? MINUS : '') + t;
+}
+function durLabel(d) { return d < 60 ? `${d} s` : d < 3600 ? `${+(d / 60).toFixed(1)} min` : `${+(d / 3600).toFixed(1)} h`; }
+
+async function readFile(file) {
+  if (file.name.toLowerCase().endsWith('.gz')) {
+    if (!('DecompressionStream' in window)) throw new Error('This browser cannot open .gz files. Unzip it first.');
+    return new Response(file.stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+  }
+  return file.arrayBuffer();
+}
+
+function showSlot(f) {
+  const ride = state[f.toUpperCase()];
+  const body = document.querySelector(`.slot[data-f="${f}"] .body`);
+  if (!ride) { body.innerHTML = '<p class="hint">Drop a FIT file here or click to choose one.</p>'; return; }
+  const vals = ride.power.filter((v) => v !== null);
+  const avg = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+  body.innerHTML = '';
+  const name = document.createElement('p'); name.className = 'name'; name.textContent = ride.name;
+  const meta = document.createElement('p'); meta.className = 'meta';
+  meta.textContent = vals.length ? `${hms(ride.power.length)} long, ${Math.round(avg)} W average` : `${hms(ride.power.length)} long, no power data`;
+  body.append(name, meta);
+  if (ride.truncated) {
+    const w = document.createElement('p'); w.className = 'warn';
+    w.textContent = 'The file ends early, so only the readable part is used.';
+    body.append(w);
+  }
+}
+
+async function loadFile(f, file) {
+  showError('');
+  try {
+    const ride = buildRide(file.name, await readFile(file));
+    if (!ride.power.some((v) => v)) throw new Error(`${file.name} has no power data.`);
+    state[f.toUpperCase()] = ride;
+  } catch (e) {
+    state[f.toUpperCase()] = null;
+    showError(e.message || String(e));
+  }
+  showSlot(f);
+  $('swap').disabled = !(state.A && state.B);
+  if (state.A && state.B) autoMatch(); else $('results').hidden = true;
+}
+
+function showError(msg) { $('error').textContent = msg; $('error').hidden = !msg; }
+
+function autoMatch() {
+  const { A, B } = state;
+  state.kClock = A.t0 - B.t0;
+  const windowS = Math.max(10, +$('window').value || 300);
+  const centre = $('ignoreClock').checked ? 0 : state.kClock;
+  try {
+    const { k, r } = findOffset(A.power, B.power, centre, windowS);
+    state.k = k; state.r = r;
+    update();
+  } catch (e) {
+    $('results').hidden = true;
+    showError(e.message);
+  }
+}
+
+function setShift(shift) {
+  state.k = state.kClock - shift;
+  state.r = correlation(state.A.power, state.B.power, state.k, 1);
+  update();
+}
+
+function update() {
+  const { A, B, k } = state;
+  const ts = Math.max(0, Math.floor(+$('trimStart').value || 0));
+  const te = Math.max(0, Math.floor(+$('trimEnd').value || 0));
+  let range, m;
+  try {
+    range = trimmedRange(A.power, B.power, k, ts, te);
+    m = compare(A, B, k, range.lo, range.hi);
+  } catch (e) {
+    $('results').hidden = true; showError(e.message); return;
+  }
+  showError('');
+  $('results').hidden = false;
+  const shift = state.kClock - k;
+  $('shiftOut').textContent = `${signed(shift, 0)} s`;
+
+  const pct = m.diffPct;
+  $('verdict').textContent = Math.abs(pct) < 0.5
+    ? 'A and B agree within half a percent'
+    : `A reads ${Math.abs(pct).toFixed(1)}% ${pct > 0 ? 'higher' : 'lower'} than B`;
+  $('verdictSub').textContent = `A ${MINUS} B is ${signed(m.diffW)} W on average across ${hms(m.seconds)} of matched riding.`;
+  $('mAvgA').innerHTML = `${m.avgA.toFixed(1)}<small>W</small>`;
+  $('mAvgB').innerHTML = `${m.avgB.toFixed(1)}<small>W</small>`;
+  $('mDiffW').innerHTML = `${signed(m.diffW)}<small>W</small>`;
+  $('mDiffPct').innerHTML = `${signed(m.diffPct, 2)}<small>%</small>`;
+  $('mRmse').innerHTML = `${m.rmse.toFixed(1)}<small>W</small>`;
+  $('mSd').innerHTML = `${m.sdDiff.toFixed(1)}<small>W</small>`;
+  $('mCv').innerHTML = `${m.cv.toFixed(2)}<small>%</small>`;
+  $('mR').textContent = m.r === null ? 'n/a' : m.r.toFixed(3);
+  $('fMatched').textContent = hms(m.seconds);
+  const c = (v) => (v === null ? 'n/a' : Math.round(v));
+  $('fCad').textContent = `${c(m.cadA)} / ${c(m.cadB)} rpm`;
+
+  const clockNote = shift === 0
+    ? "B is lined up using the files' own clocks."
+    : `B is moved ${Math.abs(shift)} s ${shift > 0 ? 'later' : 'earlier'} than its own clock says.`;
+  const lowR = state.r !== null && state.r < 0.7
+    ? ' The traces match poorly, so check both files are from the same ride, or try ignoring device clocks.' : '';
+  $('alignNote').textContent = clockNote + lowR;
+
+  drawPower(range);
+  drawAgreement(range);
+  drawCurve(range);
+}
+
+// ---------------------------------------------------------------- charts (self-contained, no library)
+function niceStep(raw) {
+  const p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+}
+function niceRange(lo, hi, count) {
+  if (!isFinite(lo) || !isFinite(hi)) { lo = 0; hi = 1; }
+  if (hi - lo < 1e-9) hi = lo + 1;
+  const step = niceStep((hi - lo) / Math.max(1, count));
+  const start = Math.floor(lo / step + 1e-9), end = Math.ceil(hi / step - 1e-9);
+  const ticks = [];
+  for (let i = start; i <= end; i++) ticks.push(+(i * step).toFixed(10));
+  return { lo: start * step, hi: end * step, ticks };
+}
+const fmtNum = (v) => String(+v.toFixed(2)).replace('-', MINUS);
+
+// One class draws every chart on the page. Config fields:
+//   series:   [{ type: 'line' | 'scatter', label, color, points: [{x, y}], dots, width, alpha }]
+//   hLines:   [{ y, color, width, dash, label }]     horizontal reference lines (bias, limits)
+//   segments: [{ x1, y1, x2, y2, color, width, dash }]  straight lines (trend, fit, identity)
+//   xMin/xMax, yMin/yMax (optional, else fitted to the data), yZero (default true), log,
+//   xTicks(plotWidth), xFmt, yFmt, xLabel, yLabel, xGrid, shade: [[x1, x2]],
+//   hoverMode: 'index' (default, readout down a vertical line) or 'nearest' (+ tip(point))
+class MiniChart {
+  constructor(canvas) {
+    this.c = canvas; this.ctx = canvas.getContext('2d'); this.cfg = null; this.hover = null;
+    this.base = document.createElement('canvas');   // cached drawing; hover is painted on top
+    this.dirty = true;
+    new ResizeObserver(() => { this.dirty = true; this.draw(); }).observe(canvas.parentElement);
+    const move = (e) => {
+      const r = canvas.getBoundingClientRect(), pt = e.touches ? e.touches[0] : e;
+      this.hover = { x: pt.clientX - r.left, y: pt.clientY - r.top }; this.draw();
+    };
+    canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('touchstart', move, { passive: true });
+    canvas.addEventListener('touchmove', move, { passive: true });
+    canvas.addEventListener('mouseleave', () => { this.hover = null; this.draw(); });
+  }
+  set(cfg) { this.cfg = cfg; this.dirty = true; this.draw(); }
+
+  render(W, H, dpr) {
+    const cfg = this.cfg, b = this.base, ctx = b.getContext('2d');
+    b.width = Math.round(W * dpr); b.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const body = css('--body'), muted = css('--muted'), line = css('--line');
+    ctx.font = `12px ${body}`;
+
+    let ylo = Infinity, yhi = -Infinity, xlo = Infinity, xhi = -Infinity;
+    for (const s of cfg.series) for (const p of s.points) {
+      if (p.y === null) continue;
+      if (p.y < ylo) ylo = p.y; if (p.y > yhi) yhi = p.y;
+      if (p.x < xlo) xlo = p.x; if (p.x > xhi) xhi = p.x;
+    }
+    for (const h of cfg.hLines || []) { ylo = Math.min(ylo, h.y); yhi = Math.max(yhi, h.y); }
+    if (cfg.yZero !== false) ylo = Math.min(ylo, 0);
+    if (cfg.yMin !== undefined) ylo = cfg.yMin;
+    if (cfg.yMax !== undefined) yhi = cfg.yMax;
+    if (!isFinite(yhi)) yhi = (isFinite(ylo) ? ylo : 0) + 1;
+    const yr = niceRange(ylo, yhi, H < 280 ? 4 : 5);
+    const yFmt = cfg.yFmt || fmtNum, xFmt = cfg.xFmt || fmtNum;
+
+    const L = 16 + Math.max(...yr.ticks.map((v) => ctx.measureText(yFmt(v)).width)) + (cfg.yLabel ? 20 : 0);
+    const R = 14, T = 12, B = 28 + (cfg.xLabel ? 20 : 0);
+    const pw = W - L - R, ph = H - T - B;
+    let xMin = cfg.xMin, xMax = cfg.xMax, xTicks;
+    const nx = Math.max(2, Math.floor(pw / 90));
+    if (xMin === undefined || xMax === undefined) {
+      const xr = niceRange(xlo, xhi, nx); xMin = xr.lo; xMax = xr.hi; xTicks = xr.ticks;
+    } else {
+      xTicks = cfg.xTicks ? cfg.xTicks(pw)
+        : niceRange(xMin, xMax, nx).ticks.filter((v) => v >= xMin - 1e-9 && v <= xMax + 1e-9);
+    }
+    const tx = cfg.log ? Math.log : (v) => v, x0 = tx(xMin), x1 = tx(xMax);
+    const X = (v) => L + (x1 === x0 ? 0 : (tx(v) - x0) / (x1 - x0) * pw);
+    const Y = (v) => T + ph - (v - yr.lo) / (yr.hi - yr.lo) * ph;
+    this.g = { L, T, pw, ph, X, Y };
+
+    ctx.fillStyle = css('--shade');
+    for (const [a, c] of cfg.shade || []) {
+      const xa = Math.max(L, X(a)), xb = Math.min(L + pw, X(c));
+      if (xb > xa) ctx.fillRect(xa, T, xb - xa, ph);
+    }
+    // grid and tick labels
+    ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.fillStyle = muted;
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (const v of yr.ticks) {
+      const y = Math.round(Y(v)) + 0.5;
+      ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke();
+      ctx.fillText(yFmt(v), L - 8, y);
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    let lastRight = -Infinity;
+    for (const v of xTicks) {
+      if (cfg.xGrid) {
+        const gx = Math.round(X(v)) + 0.5;
+        ctx.beginPath(); ctx.moveTo(gx, T); ctx.lineTo(gx, T + ph); ctx.stroke();
+      }
+      const label = xFmt(v), w = ctx.measureText(label).width;
+      const x = Math.min(Math.max(X(v), L + w / 2), L + pw - w / 2);
+      if (x - w / 2 < lastRight + 8) continue;
+      ctx.fillText(label, x, T + ph + 9);
+      lastRight = x + w / 2;
+    }
+    if (cfg.xLabel) { ctx.fillText(cfg.xLabel, L + pw / 2, T + ph + 29); }
+    if (cfg.yLabel) {
+      ctx.save(); ctx.translate(12, T + ph / 2); ctx.rotate(-Math.PI / 2);
+      ctx.textBaseline = 'middle'; ctx.fillText(cfg.yLabel, 0, 0); ctx.restore();
+    }
+
+    ctx.save(); ctx.beginPath(); ctx.rect(L, T - 3, pw, ph + 6); ctx.clip();
+    ctx.lineJoin = 'round';
+    for (const s of cfg.series) {
+      ctx.fillStyle = s.color; ctx.strokeStyle = s.color;
+      if (s.type === 'scatter') {
+        ctx.globalAlpha = s.alpha ?? 0.3;
+        for (const p of s.points) {
+          if (p.y === null) continue;
+          ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), s.r ?? 1.8, 0, 6.2832); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        continue;
+      }
+      ctx.lineWidth = s.width || 1.6;
+      ctx.beginPath();
+      let pen = false;
+      for (const p of s.points) {
+        if (p.y === null) { pen = false; continue; }
+        const x = X(p.x), y = Y(p.y);
+        if (pen) ctx.lineTo(x, y); else { ctx.moveTo(x, y); pen = true; }
+      }
+      ctx.stroke();
+      if (s.dots) for (const p of s.points) if (p.y !== null) { ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), 2.5, 0, 7); ctx.fill(); }
+    }
+    for (const h of cfg.hLines || []) {
+      const y = Math.round(Y(h.y)) + 0.5;
+      ctx.strokeStyle = h.color; ctx.lineWidth = h.width || 1; ctx.setLineDash(h.dash || []);
+      ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke();
+    }
+    for (const s of cfg.segments || []) {
+      ctx.strokeStyle = s.color; ctx.lineWidth = s.width || 1.5; ctx.setLineDash(s.dash || []);
+      ctx.beginPath(); ctx.moveTo(X(s.x1), Y(s.y1)); ctx.lineTo(X(s.x2), Y(s.y2)); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    // line labels, with a halo so they stay readable over the dots
+    ctx.font = `600 12px ${body}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.lineWidth = 4; ctx.lineJoin = 'round';
+    for (const h of cfg.hLines || []) {
+      if (!h.label) continue;
+      const y = Y(h.y) - 4;
+      ctx.strokeStyle = css('--surface'); ctx.strokeText(h.label, L + pw - 6, y);
+      ctx.fillStyle = h.color; ctx.fillText(h.label, L + pw - 6, y);
+    }
+    ctx.restore();
+  }
+
+  draw() {
+    const cfg = this.cfg, box = this.c.parentElement;
+    if (!cfg) return;
+    const W = box.clientWidth, H = box.clientHeight, dpr = window.devicePixelRatio || 1;
+    if (!W || !H) return;
+    const size = `${W}x${H}x${dpr}`;
+    if (this.dirty || size !== this.size) {
+      this.c.width = Math.round(W * dpr); this.c.height = Math.round(H * dpr);
+      this.c.style.width = W + 'px'; this.c.style.height = H + 'px';
+      this.render(W, H, dpr);
+      this.dirty = false; this.size = size;
+    }
+    const ctx = this.ctx;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, this.c.width, this.c.height);
+    ctx.drawImage(this.base, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const h = this.hover, g = this.g;
+    if (!h || h.x < g.L || h.x > g.L + g.pw) return;
+    if (cfg.hoverMode === 'nearest') {
+      let best = null, bestD = 24 * 24;
+      for (const s of cfg.series) if (s.type === 'scatter') for (const p of s.points) {
+        const dx = g.X(p.x) - h.x, dy = g.Y(p.y) - h.y, d = dx * dx + dy * dy;
+        if (d < bestD) { bestD = d; best = p; }
+      }
+      if (!best) return;
+      const px = g.X(best.x), py = g.Y(best.y);
+      ctx.strokeStyle = css('--ink'); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(px, py, 5, 0, 7); ctx.stroke();
+      const tip = cfg.tip(best);
+      this.tooltip(px, py, tip.title, tip.rows);
+      return;
+    }
+    const ref = cfg.series[0].points;
+    if (!ref.length) return;
+    let lo = 0, hi = ref.length - 1;
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (g.X(ref[mid].x) < h.x) lo = mid; else hi = mid; }
+    const idx = Math.abs(g.X(ref[lo].x) - h.x) <= Math.abs(g.X(ref[hi].x) - h.x) ? lo : hi;
+    const px = Math.round(g.X(ref[idx].x)) + 0.5;
+    ctx.strokeStyle = css('--muted'); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(px, g.T); ctx.lineTo(px, g.T + g.ph); ctx.stroke();
+    for (const s of cfg.series) {
+      const p = s.points[idx];
+      if (p && p.y !== null) { ctx.fillStyle = s.color; ctx.beginPath(); ctx.arc(g.X(p.x), g.Y(p.y), 3.5, 0, 7); ctx.fill(); }
+    }
+    const rows = cfg.series.map((s) => {
+      const p = s.points[idx];
+      return { color: s.color, text: `${s.label}: ${p && p.y !== null ? Math.round(p.y) + ' W' : 'no data'}` };
+    });
+    this.tooltip(px, null, cfg.tipTitle(ref[idx].x), rows);
+  }
+
+  tooltip(px, py, title, rows) {
+    const ctx = this.ctx, g = this.g, body = css('--body');
+    ctx.font = `600 12px ${body}`;
+    let bw = ctx.measureText(title).width;
+    ctx.font = `12px ${body}`;
+    for (const r of rows) bw = Math.max(bw, ctx.measureText(r.text).width + (r.color ? 16 : 0));
+    bw += 20;
+    const bh = 14 + 18 * (rows.length + 1);
+    let bx = px + 12; if (bx + bw > g.L + g.pw) bx = px - 12 - bw;
+    const by = py === null ? g.T + 6 : Math.min(Math.max(g.T, py - bh - 10), g.T + g.ph - bh);
+    ctx.fillStyle = css('--surface'); ctx.strokeStyle = css('--line'); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.rect(bx, by, bw, bh); ctx.fill(); ctx.stroke();
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = css('--ink'); ctx.font = `600 12px ${body}`;
+    ctx.fillText(title, bx + 10, by + 16);
+    ctx.font = `12px ${body}`;
+    rows.forEach((r, i) => {
+      const y = by + 16 + 18 * (i + 1);
+      let x = bx + 10;
+      if (r.color) { ctx.fillStyle = r.color; ctx.fillRect(x, y - 4, 8, 8); x += 16; }
+      ctx.fillStyle = css('--ink'); ctx.fillText(r.text, x, y);
+    });
+  }
+}
+
+let powerChart = null, curveChart = null, lastRange = null;
+
+function smoothed(xs, w) {
+  if (w <= 1) return xs;
+  const n = xs.length, s = new Float64Array(n + 1), c = new Uint32Array(n + 1);
+  for (let i = 0; i < n; i++) { s[i + 1] = s[i] + (xs[i] ?? 0); c[i + 1] = c[i] + (xs[i] === null ? 0 : 1); }
+  const half = Math.floor(w / 2), out = new Array(n);
+  for (let i = 0; i < n; i++) {
+    const a = Math.max(0, i - half), b = Math.min(n, i - half + w);
+    const cnt = c[b] - c[a];
+    out[i] = xs[i] === null || !cnt ? null : (s[b] - s[a]) / cnt;
+  }
+  return out;
+}
+function toPoints(ys) {           // bucket-average long rides down to ~2000 points
+  const bucket = Math.max(1, Math.ceil(ys.length / 2000)), pts = [];
+  for (let s = 0; s < ys.length; s += bucket) {
+    let sum = 0, n = 0;
+    for (let i = s; i < Math.min(s + bucket, ys.length); i++) if (ys[i] !== null) { sum += ys[i]; n++; }
+    pts.push({ x: s + (Math.min(bucket, ys.length - s) - 1) / 2, y: n ? sum / n : null });
+  }
+  return pts;
+}
+const TIME_STEPS = [5, 10, 15, 30, 60, 120, 300, 600, 900, 1200, 1800, 3600, 7200, 10800];
+
+function drawPower(range) {
+  lastRange = range;
+  const { A, B, k } = state;
+  const ovLo = Math.max(0, -k), ovHi = Math.min(A.power.length, B.power.length - k) - 1;
+  const w = +$('smooth').value;
+  const a = smoothed(A.power.slice(ovLo, ovHi + 1), w);
+  const b = smoothed(B.power.slice(ovLo + k, ovHi + k + 1), w);
+  const total = ovHi - ovLo;
+  if (!powerChart) powerChart = new MiniChart($('powerChart'));
+  powerChart.set({
+    series: [{ label: 'A', color: css('--a'), points: toPoints(a) }, { label: 'B', color: css('--b'), points: toPoints(b) }],
+    xMin: 0, xMax: Math.max(1, total),
+    shade: [[0, range.lo - ovLo], [range.hi - ovLo, total]],
+    xTicks: (pw) => {
+      const maxTicks = Math.max(2, Math.floor(pw / 90));
+      const step = TIME_STEPS.find((s) => total / s <= maxTicks) || 21600;
+      const t = []; for (let v = 0; v <= total; v += step) t.push(v); return t;
+    },
+    xFmt: hms, tipTitle: hms,
+  });
+}
+
+function drawCurve(range) {
+  const { A, B, k } = state;
+  const ca = powerCurve(A.power.slice(range.lo, range.hi + 1));
+  const cb = powerCurve(B.power.slice(range.lo + k, range.hi + k + 1));
+  const maxD = ca.length ? ca[ca.length - 1].x : 1;
+  if (!curveChart) curveChart = new MiniChart($('curveChart'));
+  curveChart.set({
+    series: [{ label: 'A', color: css('--a'), points: ca, dots: true, width: 2 },
+             { label: 'B', color: css('--b'), points: cb, dots: true, width: 2 }],
+    log: true, xMin: 1, xMax: Math.max(2, maxD),
+    xTicks: () => [1, 5, 10, 30, 60, 300, 600, 1200, 1800, 3600, 7200, 14400, 21600].filter((t) => t <= maxD),
+    xFmt: durLabel, tipTitle: durLabel,
+  });
+}
+
+// ---------------------------------------------------------------- agreement charts (30 s means)
+let baChart = null, baPctChart = null, scatterChart = null;
+const WINDOW_S = 30;
+
+// Rolling 30 s means, stepping 1 s at a time. A window is used only if all 30 seconds
+// have power from both files. t = window start, in seconds from where the files overlap.
+function rollingMeans(A, B, k, lo, hi, w) {
+  const len = hi - lo + 1, pa = new Float64Array(len + 1), pb = new Float64Array(len + 1), pc = new Uint32Array(len + 1);
+  for (let i = 0; i < len; i++) {
+    const a = A.power[lo + i], b = B.power[lo + i + k], ok = a !== null && b !== null;
+    pa[i + 1] = pa[i] + (ok ? a : 0); pb[i + 1] = pb[i] + (ok ? b : 0); pc[i + 1] = pc[i] + (ok ? 1 : 0);
+  }
+  const ov = Math.max(0, -k), out = [];
+  for (let e = w; e <= len; e++) {
+    if (pc[e] - pc[e - w] === w) out.push({ a: (pa[e] - pa[e - w]) / w, b: (pb[e] - pb[e - w]) / w, t: lo + e - w - ov });
+  }
+  return out;
+}
+function meanSd(v) {
+  const n = v.length; let s = 0, ss = 0;
+  for (const x of v) s += x;
+  const m = s / n;
+  for (const x of v) ss += (x - m) * (x - m);
+  return { mean: m, sd: n > 1 ? Math.sqrt(ss / (n - 1)) : 0 };
+}
+function linreg(xs, ys) {
+  const n = xs.length; let mx = 0, my = 0;
+  for (let i = 0; i < n; i++) { mx += xs[i]; my += ys[i]; }
+  mx /= n; my /= n;
+  let sxx = 0, sxy = 0, syy = 0;
+  for (let i = 0; i < n; i++) { const dx = xs[i] - mx, dy = ys[i] - my; sxx += dx * dx; sxy += dx * dy; syy += dy * dy; }
+  const slope = sxx ? sxy / sxx : 0;
+  return { slope, intercept: my - slope * mx, r: sxx && syy ? sxy / Math.sqrt(sxx * syy) : 0 };
+}
+const extent = (v) => { let lo = Infinity, hi = -Infinity; for (const x of v) { if (x < lo) lo = x; if (x > hi) hi = x; } return [lo, hi]; };
+const forDisplay = (pts) => { const s = Math.ceil(pts.length / 6000); return s > 1 ? pts.filter((_, i) => i % s === 0) : pts; };
+
+function drawAgreement(range) {
+  const { A, B, k } = state;
+  const wins = rollingMeans(A, B, k, range.lo, range.hi, WINDOW_S);
+  const enough = wins.length >= 3;
+  $('agreeEmpty').hidden = enough;
+  document.querySelectorAll('.needs-windows').forEach((el) => { el.hidden = !enough; });
+  if (!enough) return;
+  const ink = css('--ink'), acc = css('--accent'), muted = css('--muted');
+  const limits = (unit, d) => [
+    { y: 0, color: muted, width: 1 },
+    { y: d.mean, color: acc, width: 2, label: `bias ${signed(d.mean)}${unit}` },
+    { y: d.mean + 1.96 * d.sd, color: acc, width: 1.2, dash: [6, 4], label: `+1.96 SD ${signed(d.mean + 1.96 * d.sd)}${unit}` },
+    { y: d.mean - 1.96 * d.sd, color: acc, width: 1.2, dash: [6, 4], label: `${MINUS}1.96 SD ${signed(d.mean - 1.96 * d.sd)}${unit}` },
+  ];
+  const tipFor = (unit) => (p) => ({
+    title: `30 s from ${hms(p.t)}`,
+    rows: [{ color: css('--a'), text: `A ${Math.round(p.a)} W` }, { color: css('--b'), text: `B ${Math.round(p.b)} W` },
+           { text: `A ${MINUS} B ${signed(p.y, unit === ' %' ? 1 : 1)}${unit}` }],
+  });
+
+  // Bland-Altman, watts: x = (A + B) / 2, y = A - B
+  const ba = wins.map((w) => ({ x: (w.a + w.b) / 2, y: w.a - w.b, a: w.a, b: w.b, t: w.t }));
+  const d = meanSd(ba.map((p) => p.y));
+  const trend = linreg(ba.map((p) => p.x), ba.map((p) => p.y));
+  const [mLo, mHi] = extent(ba.map((p) => p.x));
+  if (!baChart) baChart = new MiniChart($('baChart'));
+  baChart.set({
+    series: [{ type: 'scatter', color: ink, alpha: 0.25, points: forDisplay(ba) }],
+    yZero: false, xGrid: true, hLines: limits(' W', d), hoverMode: 'nearest', tip: tipFor(' W'),
+    segments: [{ x1: mLo, y1: trend.slope * mLo + trend.intercept, x2: mHi, y2: trend.slope * mHi + trend.intercept, color: ink, width: 1.5, dash: [2, 3] }],
+    xLabel: 'Average of A and B (W)', yLabel: `A ${MINUS} B (W)`,
+  });
+  $('baStats').textContent = `${ba.length} windows. Bias ${signed(d.mean)} W, limits of agreement ${signed(d.mean - 1.96 * d.sd)} to ${signed(d.mean + 1.96 * d.sd)} W. Dotted trend: ${signed(trend.slope * 100)} W per 100 W.`;
+
+  // Bland-Altman, percent: y = (A - B) / ((A + B) / 2) * 100
+  const bp = ba.filter((p) => p.x > 0).map((p) => ({ ...p, y: p.y / p.x * 100 }));
+  const dp = meanSd(bp.map((p) => p.y));
+  if (!baPctChart) baPctChart = new MiniChart($('baPctChart'));
+  baPctChart.set({
+    series: [{ type: 'scatter', color: ink, alpha: 0.25, points: forDisplay(bp) }],
+    yZero: false, xGrid: true, hLines: limits(' %', dp), hoverMode: 'nearest', tip: tipFor(' %'),
+    xLabel: 'Average of A and B (W)', yLabel: `A ${MINUS} B (% of average)`,
+  });
+  $('baPctStats').textContent = `${bp.length} windows. Bias ${signed(dp.mean, 2)} %, limits of agreement ${signed(dp.mean - 1.96 * dp.sd, 2)} to ${signed(dp.mean + 1.96 * dp.sd, 2)} %.`;
+
+  // 30 s mean power: x = B, y = A, with the line A = B and a least-squares fit
+  const sc = wins.map((w) => ({ x: w.b, y: w.a, a: w.a, b: w.b, t: w.t }));
+  const fit = linreg(sc.map((p) => p.x), sc.map((p) => p.y));
+  const [lo1, hi1] = extent(sc.map((p) => p.x)), [lo2, hi2] = extent(sc.map((p) => p.y));
+  const r = niceRange(Math.min(lo1, lo2), Math.max(hi1, hi2), 5);
+  if (!scatterChart) scatterChart = new MiniChart($('scatterChart'));
+  scatterChart.set({
+    series: [{ type: 'scatter', color: ink, alpha: 0.25, points: forDisplay(sc) }],
+    xMin: r.lo, xMax: r.hi, yMin: r.lo, yMax: r.hi, yZero: false, xGrid: true, hoverMode: 'nearest',
+    tip: (p) => ({ title: `30 s from ${hms(p.t)}`, rows: [{ color: css('--a'), text: `A ${Math.round(p.a)} W` }, { color: css('--b'), text: `B ${Math.round(p.b)} W` }] }),
+    segments: [
+      { x1: r.lo, y1: r.lo, x2: r.hi, y2: r.hi, color: muted, width: 1.2, dash: [6, 4] },
+      { x1: r.lo, y1: fit.slope * r.lo + fit.intercept, x2: r.hi, y2: fit.slope * r.hi + fit.intercept, color: acc, width: 2 },
+    ],
+    xLabel: 'B, 30 s mean power (W)', yLabel: 'A, 30 s mean power (W)',
+  });
+  const icpt = `${fit.intercept < 0 ? MINUS : '+'} ${Math.abs(fit.intercept).toFixed(1)} W`;
+  $('fitStats').textContent = `${sc.length} windows. Fit: A = ${fit.slope.toFixed(3)} ${'\u00D7'} B ${icpt}, r = ${fit.r.toFixed(3)}.`;
+}
+
+// ---------------------------------------------------------------- wiring
+document.querySelectorAll('.slot').forEach((slot) => {
+  const f = slot.dataset.f, input = slot.querySelector('input');
+  input.addEventListener('change', () => { if (input.files[0]) loadFile(f, input.files[0]); input.value = ''; });
+  slot.addEventListener('dragover', (e) => { e.preventDefault(); slot.classList.add('drag'); });
+  slot.addEventListener('dragleave', () => slot.classList.remove('drag'));
+  slot.addEventListener('drop', (e) => {
+    e.preventDefault(); slot.classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    if (file) loadFile(f, file);
+  });
+});
+$('swap').addEventListener('click', () => {
+  [state.A, state.B] = [state.B, state.A];
+  showSlot('a'); showSlot('b'); autoMatch();
+});
+document.querySelectorAll('[data-step]').forEach((btn) =>
+  btn.addEventListener('click', () => setShift(state.kClock - state.k + +btn.dataset.step)));
+$('auto').addEventListener('click', autoMatch);
+$('window').addEventListener('change', autoMatch);
+$('ignoreClock').addEventListener('change', autoMatch);
+$('trimStart').addEventListener('input', () => state.A && state.B && update());
+$('trimEnd').addEventListener('input', () => state.A && state.B && update());
+$('smooth').addEventListener('change', () => lastRange && drawPower(lastRange));
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (state.A && state.B && !$('results').hidden) update(); });
+new MutationObserver(() => { if (state.A && state.B && !$('results').hidden) update(); })
+  .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+</script>
+</body>
+</html>
