@@ -1,5 +1,15 @@
 # Power match
 
+Compare two power sources recorded on the same ride. For example: power-meter pedals against a smart trainer, or a head unit against Zwift or MyWhoosh.
+
+**Use it here: [https://niznixzar.github.io/power-compare/](https://niznixzar.github.io/power-compare/)**
+
+Load two `.fit` files. Power match lines them up second by second and tells you how closely the two devices agree.
+
+Your files are read in your browser and never uploaded anywhere.
+
+---
+
 ## How to use it
 
 1. Record the same ride on both devices, for example pedals on your Garmin and the trainer in MyWhoosh.
