@@ -2,7 +2,7 @@
 
 Compare two power sources recorded on the same ride. For example: power-meter pedals against a smart trainer, or a head unit against Zwift or MyWhoosh.
 
-**Use it here: [https://niznixzar.github.io/power-compare/](https://niznixzar.github.io/power-compare/)**
+**Use it here: [https://YOUR-USERNAME.github.io/YOUR-REPO/](https://YOUR-USERNAME.github.io/YOUR-REPO/)**
 
 Load two `.fit` files. Power match lines them up second by second and tells you how closely the two devices agree.
 
@@ -74,17 +74,17 @@ These values use one data point per second. Files recorded faster than once a se
 ## The charts
 
 - **Power:** both traces over the ride, after matching.
-- **Bland–Altman (W and %):** each dot is a 30-second average. Windows where either device averages under 5 W, such as coasting or stops, are left out.
+- **Bland–Altman (W and %):** use the **Averaging** menu to plot instantaneous (1-second) values or 3, 10 or 30 s rolling averages. Each dot is one second or one average. Samples where either device is under 5 W, such as coasting or stops, are left out.
   - Across: the average of A and B.
   - Up: A − B, in watts or as a percentage of that average.
   - Solid pink line: the **bias**, i.e. the average difference.
   - Dashed pink lines: the **limits of agreement**, bias ± 1.96 × SD. About 95% of the dots should fall between them.
   - Green **line of best fit**: if it slopes, the gap between the devices changes as power goes up. Flat means the gap stays the same.
-- **30 s mean power:** A against B, with a dashed A = B line and a green line of best fit. Windows under 5 W are left out here too.
+- **A against B:** A's power plotted against B's, with a dashed A = B line and a green line of best fit. It has its own **Averaging** menu (1, 3, 10 or 30 s; 30 s by default), and samples under 5 W are left out here too.
   - Dots above the dashed line are moments where A read higher than B.
 - **Time-power curve:** the best average power each device recorded for durations from 1 second to the whole ride.
 
-The charts use 30-second averages, which smooth out second-to-second noise. That's why their limits of agreement are narrower than the 1-second SD at the top of the page.
+Longer averages smooth out second-to-second noise, so the limits of agreement get narrower as you go from 1 s to 30 s. With 1-second data, a few extreme points at very low power can fall outside the Bland–Altman chart area. They're still included in the numbers, and the text under the chart says how many there are.
 
 ---
 
